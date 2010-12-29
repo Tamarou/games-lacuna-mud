@@ -1,0 +1,3 @@
+[submodule "ext/Games-Lacuna-Client"]
+	path = ext/Games-Lacuna-Client
+	url = git@github.com:Tamarou/Games-Lacuna-Client.git
