@@ -5,7 +5,8 @@ use Moose;
 use Games::Lacuna::Client;
 use Games::Lacuna::Client::PrettyPrint;
 use Games::Lacuna::MUD::SpeciesStats;
-use Games::Lacuna::MUD::CurrentPlanet;
+use Games::Lacuna::MUD::PlanetData;
+use Module::Refresh;
 
 use IO::Prompt;
 
@@ -37,7 +38,7 @@ sub _build_empire_data {
 }
 
 has current_planet => (
-    isa     => 'Games::Lacuna::MUD::CurrentPlanet',
+    isa     => 'Games::Lacuna::MUD::PlanetData',
     is      => 'ro',
     writer  => '_current_planet',
     lazy    => 1,
@@ -53,7 +54,7 @@ sub _build_current_planet {
 sub _pid_to_planet {
     my ( $self, $pid ) = @_;
     my $data = $self->client->body( id => $pid )->get_buildings();
-    Games::Lacuna::MUD::CurrentPlanet->new( raw_data => $data );
+    Games::Lacuna::MUD::PlanetData->new( raw_data => $data );
 }
 
 sub switch_planet {
@@ -65,23 +66,48 @@ sub switch_planet {
 }
 
 sub look {
+    my $self = shift;
+    $self->show_status;
+}
+
+sub show_map {
+    my $self   = shift;
+    my $planet = $self->current_planet;
+    warn $planet->surface_image;
+    Games::Lacuna::Client::PrettyPrint::surface( $planet->surface_image,
+        $planet->buildings );
+
+}
+
+sub show_status {
     my $self   = shift;
     my $planet = $self->current_planet;
     Games::Lacuna::Client::PrettyPrint::show_status( $planet->status );
 }
 
+sub reload {
+    Module::Refresh->refresh;
+    say 'Modules Refreshed';
+}
+
+sub help { say 'Commands: map, status, go, look, reload, quit' }
+
 sub run {
     my ($self) = @_;
     $self->look;
-    while ( my $method = prompt('command: ') ) {
+    while ( my $method = prompt('command: ', -u => qr/q|quit/) ) {
         given ($method) {
-            when (qr/(?:g|go)/)   { $self->switch_planet }
-            when (qr/(?:l|look)/) { $self->look }
-            when (qr/(?:q|quit)/) { say 'Goodbye'; return; }
-            when (qr/(?:h|help)/) { say 'HELP TEXT' }
-            default               { say 'Command not recognized.' }
+            when (qr/m|map/)    { $self->show_map }
+            when (qr/s|status/) { $self->show_status }
+            when (qr/g|go/)     { $self->switch_planet }
+            when (qr/l|look/)   { $self->look }
+            when (qr/r|reload/) { $self->reload }
+            when (qr/h|help/)   { $self->help }
+            when (qr/xyzzy/)    { say 'Nothing happens' }
+            default             { say 'Command not recognized. Try again.' }
         }
     }
+    say 'Goodbye';
 }
 1;
 __END__

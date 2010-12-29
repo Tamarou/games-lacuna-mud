@@ -1,4 +1,4 @@
-package Games::Lacuna::MUD::CurrentPlanet;
+package Games::Lacuna::MUD::PlanetData;
 use Moose;
 
 has raw_data => (
@@ -27,6 +27,13 @@ has body => (
     traits  => ['Hash'],
     handles => { surface_image => [ 'get', 'surface_image' ] },
 );
+
+around surface_image => sub {
+    my ( $next, $self ) = ( shift, shift );
+    my $surface_image = $self->$next(@_);
+    $surface_image =~ s/^surface-//g;
+    return $surface_image;
+};
 
 has buildings => (
     isa     => 'HashRef',
