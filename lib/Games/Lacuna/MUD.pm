@@ -4,9 +4,9 @@ use 5.12.2;
 use Moose;
 use Games::Lacuna::Client;
 use Games::Lacuna::Client::PrettyPrint;
-use Games::Lacuna::MUD::SpeciesStats;
-use Games::Lacuna::MUD::PlanetData;
-use Games::Lacuna::MUD::BuildingData;
+use Games::Lacuna::MUD::Empire;
+use Games::Lacuna::MUD::Planet;
+use Games::Lacuna::MUD::Building;
 use Module::Refresh;
 use Try::Tiny;
 use IO::Prompter;
@@ -34,7 +34,7 @@ has client => (
 sub _build_client { Games::Lacuna::Client->new( cfg_file => shift->cfg_file ) }
 
 has empire_data => (
-    isa     => 'Games::Lacuna::MUD::SpeciesStats',
+    isa     => 'Games::Lacuna::MUD::Empire',
     is      => 'ro',
     builder => '_build_empire_data',
 );
@@ -42,20 +42,19 @@ has empire_data => (
 sub _build_empire_data {
     my ($self) = @_;
     my $data = $self->client->empire->view_species_stats();
-    Games::Lacuna::MUD::SpeciesStats->new( raw_data => $data );
+    Games::Lacuna::MUD::Empire->new( raw_data => $data );
 }
 
 has current_planet => (
-    isa     => 'Games::Lacuna::MUD::PlanetData',
+    isa     => 'Games::Lacuna::MUD::Planet',
     is      => 'ro',
     writer  => '_current_planet',
     lazy    => 1,
     builder => '_build_current_planet',
     handles => {
-        show_planet_status     => 'show_status',
-        show_planet_map        => 'show_map',
-        show_production_report => 'show_production_report',
-        planet_try_command     => 'try_command',
+        show_planet_status => 'show_status',
+        show_planet_map    => 'show_map',
+        planet_try_command => 'try_command',
     },
 );
 
@@ -68,19 +67,20 @@ sub _build_current_planet {
 sub _pid_to_planet {
     my ( $self, $pid ) = @_;
     my $data = $self->client->body( id => $pid )->get_buildings();
-    Games::Lacuna::MUD::PlanetData->new( id => $pid, raw_data => $data );
+    Games::Lacuna::MUD::Planet->new( id => $pid, raw_data => $data );
 }
 
 sub switch_planet {
     my ($self) = @_;
     my $menue = { reverse %{ $self->empire_data->planets } };
-    my $pid = prompt( '-number', -menu => $menue, '-v' );
+    my $pid = prompt( 'Planet: ', '-number', -menu => $menue, '-v' );
     $self->_current_planet( $self->_pid_to_planet($pid) );
-    $self->look;
+    $self->show_planet_map;
+    $self->show_planet_status;
 }
 
 has current_building => (
-    isa       => 'Games::Lacuna::MUD::BuildingData',
+    isa       => 'Games::Lacuna::MUD::Building',
     is        => 'ro',
     writer    => '_current_building',
     clearer   => '_clear_building',
@@ -101,7 +101,7 @@ sub switch_building {
         map { _get_building_display_name( $details->{$_} ) => $_ }
           keys %$details
     };
-    my $bid  = prompt( '-number', -menu => $menue, '-v' );
+    my $bid  = prompt( 'Building: ', '-number', -menu => $menue, '-v' );
     my $url  = $details->{$bid}->{url};
     my $type = Games::Lacuna::Client::Buildings::type_from_url($url);
     my $data = $self->client->building(
@@ -109,7 +109,7 @@ sub switch_building {
         type => $type
     )->view()->{building};
     my $building =
-      Games::Lacuna::MUD::BuildingData->new( id => $bid, raw_data => $data );
+      Games::Lacuna::MUD::Building->new( id => $bid, raw_data => $data );
     $self->_current_building($building);
     $self->show_building_status;
 }
@@ -117,7 +117,8 @@ sub switch_building {
 sub leave_building {
     my $self = shift;
     $self->_clear_building;
-    $self->look;
+    $self->show_planet_map;
+    $self->show_planet_status;
 }
 
 sub show_building_status {
@@ -145,8 +146,10 @@ sub try_command {
 
 sub run {
     my ($self) = @_;
-    $self->look;
-    while ( my $method = prompt( 'command: ', '-h', -fail => qr/^q(?:uit)?$/ ) )
+    $self->show_planet_map;
+    $self->show_planet_status;
+    my $planet = $self->current_planet->name;
+    while ( my $method = prompt( "$planet: ", '-h', -fail => qr/^q(?:uit)?$/ ) )
     {
         try {
             given ($method) {
@@ -160,7 +163,8 @@ sub run {
         }
         catch {
             say "Something went wrong: $_";
-        }
+        };
+        $planet = $self->current_planet->name;
     }
     say 'Goodbye';
 }

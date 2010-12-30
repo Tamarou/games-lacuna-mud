@@ -1,4 +1,4 @@
-package Games::Lacuna::MUD::BuildingData;
+package Games::Lacuna::MUD::Building;
 use 5.12.2;
 use Moose;
 

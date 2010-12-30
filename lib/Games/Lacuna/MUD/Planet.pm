@@ -1,4 +1,4 @@
-package Games::Lacuna::MUD::PlanetData;
+package Games::Lacuna::MUD::Planet;
 use 5.12.2;
 use Moose;
 use Games::Lacuna::Client::PrettyPrint;
@@ -10,7 +10,7 @@ has raw_data => (
     required => 1,
     traits   => ['Hash'],
     handles  => {
-        _build_status    => [ 'get', 'status' ],
+        _raw_status      => [ 'get', 'status' ],
         _build_body      => [ 'get', 'body' ],
         _build_buildings => [ 'get', 'buildings' ],
     },
@@ -19,10 +19,13 @@ has raw_data => (
 has status => (
     isa     => 'HashRef',
     lazy    => 1,
+    is      => 'ro',
     builder => '_build_status',
     traits  => ['Hash'],
-    handles => { status => [ 'get', 'body' ], },
+    handles => { name => [ 'get' => 'name' ] }
 );
+
+sub _build_status { shift->_raw_status->{body} }
 
 has body => (
     isa     => 'HashRef',

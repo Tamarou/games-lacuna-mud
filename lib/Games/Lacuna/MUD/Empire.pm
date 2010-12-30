@@ -1,4 +1,4 @@
-package Games::Lacuna::MUD::SpeciesStats;
+package Games::Lacuna::MUD::Empire;
 use Moose;
 
 has raw_data => (
