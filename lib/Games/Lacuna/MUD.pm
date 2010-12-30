@@ -82,6 +82,7 @@ has current_building => (
     isa       => 'Games::Lacuna::MUD::BuildingData',
     is        => 'ro',
     writer    => '_current_building',
+    clearer   => '_clear_building',
     predicate => 'has_current_building',
 );
 
@@ -111,11 +112,17 @@ sub switch_building {
     $self->show_building_status;
 }
 
+sub leave_building {
+    my $self = shift;
+    $self->_clear_building;
+    $self->look;
+}
+
 sub look {
     my $self = shift;
     $self->has_current_building
       ? $self->show_building_status
-      : $self->show_planet_status;
+      : do { $self->show_planet_map; $self->show_planet_status };
 }
 
 sub show_building_status {
@@ -127,17 +134,26 @@ sub show_building_status {
 
 sub help { say 'Commands: map, status, go, look, reload, quit' }
 
+sub dump_current {
+    my $self = shift;
+    say $self->has_current_building
+      ? $self->current_building->dump
+      : $self->current_planet->dump;
+}
+
 sub run {
     my ($self) = @_;
     $self->look;
-    while ( my $method = prompt( 'command: ', '-h', -fail => qr/q|quit/ ) ) {
+    while ( my $method = prompt( 'command: ', '-h', -fail => qr/^q(?:uit)$/ ) )
+    {
         try {
             given ($method) {
                 when (qr/^go building$/)    { $self->switch_building }
                 when (qr/^leave building$/) { $self->leave_building }
-                when (qr/^map?$/)           { $self->show_map }
+                when (qr/^map?$/)           { $self->show_planet_map }
                 when (qr/^go planet?$/)     { $self->switch_planet }
                 when (qr/^look?$/)          { $self->look }
+                when (qr/^dump$/)           { $self->dump_current }
                 when (qr/^reload?$/)        { $self->reload }
                 when (qr/^help$/)           { $self->help }
                 when (qr/^xyzzy$/)          { say 'Nothing happens' }
