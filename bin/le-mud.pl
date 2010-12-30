@@ -9,9 +9,9 @@ use Games::Lacuna::MUD;
 use Getopt::Long;
 use Pod::Usage;
 
-my $cfg_file;
-my $man  = 0;
-my $help = 0;
+my $cfg_file = "$ENV{HOME}/.le-mudrc";
+my $man      = 0;
+my $help     = 0;
 
 GetOptions(
     'cfg=s'  => \$cfg_file,

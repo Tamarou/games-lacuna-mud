@@ -1,5 +1,9 @@
 package Games::Lacuna::MUD::PlanetData;
+use 5.12.2;
 use Moose;
+use Games::Lacuna::Client::PrettyPrint;
+
+has id => ( isa => 'Str', is => 'ro', required => 1, );
 
 has raw_data => (
     isa      => 'HashRef',
@@ -43,6 +47,35 @@ has buildings => (
     traits  => ['Hash'],
     handles => {},
 );
+
+sub show_status {
+    my $self = shift;
+    Games::Lacuna::Client::PrettyPrint::show_status( $self->status );
+}
+
+sub show_map {
+    my $self = shift;
+    Games::Lacuna::Client::PrettyPrint::surface( $self->surface_image,
+        $self->buildings );
+}
+
+sub show_production_report {
+    say 'Not Implemented Yet';
+    return;
+    my $self   = shift;
+    my $planet = $self->current_planet;
+    my $pid    = $planet->id;
+
+    my $details = $planet->buildings;
+    for my $bid ( keys %{ $details->{$pid} } ) {
+        my $url  = $details->{$pid}->{$bid}->{url};
+        my $type = Games::Lacuna::Client::Buildings::type_from_url($url);
+        $details->{$pid}->{$bid}->{details} =
+          $self->client->building( id => $bid, type => $type )->view()
+          ->{building};
+    }
+
+}
 
 1;
 __END__

@@ -6,15 +6,23 @@ use Games::Lacuna::Client;
 use Games::Lacuna::Client::PrettyPrint;
 use Games::Lacuna::MUD::SpeciesStats;
 use Games::Lacuna::MUD::PlanetData;
+use Games::Lacuna::MUD::BuildingData;
 use Module::Refresh;
-
-use IO::Prompt;
+use Try::Tiny;
+use IO::Prompter;
 
 has cfg_file => (
     isa      => 'Str',
     is       => 'ro',
     required => 1,
 );
+
+has refresher => (
+    default => sub      { Module::Refresh->new },
+    handles => { reload => 'refresh' },
+);
+
+after reload => sub { say 'Modules Refreshed' };
 
 has client => (
     isa     => 'Games::Lacuna::Client',
@@ -42,7 +50,12 @@ has current_planet => (
     is      => 'ro',
     writer  => '_current_planet',
     lazy    => 1,
-    builder => '_build_current_planet'
+    builder => '_build_current_planet',
+    handles => {
+        'show_planet_status'     => 'show_status',
+        'show_planet_map'        => 'show_map',
+        'show_production_report' => 'show_production_report',
+    },
 );
 
 sub _build_current_planet {
@@ -54,40 +67,62 @@ sub _build_current_planet {
 sub _pid_to_planet {
     my ( $self, $pid ) = @_;
     my $data = $self->client->body( id => $pid )->get_buildings();
-    Games::Lacuna::MUD::PlanetData->new( raw_data => $data );
+    Games::Lacuna::MUD::PlanetData->new( id => $pid, raw_data => $data );
 }
 
 sub switch_planet {
     my ($self) = @_;
     my $menue = { reverse %{ $self->empire_data->planets } };
-    my $pid = prompt( -menu => $menue ) + 0;
+    my $pid = prompt( '-number', -menu => $menue, '-v' );
     $self->_current_planet( $self->_pid_to_planet($pid) );
     $self->look;
 }
 
+has current_building => (
+    isa       => 'Games::Lacuna::MUD::BuildingData',
+    is        => 'ro',
+    writer    => '_current_building',
+    predicate => 'has_current_building',
+);
+
+sub _get_building_display_name {
+    return "$_[0]->{name} ($_[0]->{level})";
+}
+
+sub switch_building {
+    my $self    = shift;
+    my $planet  = $self->current_planet;
+    my $pid     = $planet->id;
+    my $details = $planet->buildings;
+    my $menue   = {
+        map { _get_building_display_name( $details->{$_} ) => $_ }
+          keys %$details
+    };
+    my $bid  = prompt( '-number', -menu => $menue, '-v' );
+    my $url  = $details->{$bid}->{url};
+    my $type = Games::Lacuna::Client::Buildings::type_from_url($url);
+    my $data = $self->client->building(
+        id   => $bid,
+        type => $type
+    )->view()->{building};
+    my $building =
+      Games::Lacuna::MUD::BuildingData->new( id => $bid, raw_data => $data );
+    $self->_current_building($building);
+    $self->show_building_status;
+}
+
 sub look {
     my $self = shift;
-    $self->show_status;
+    $self->has_current_building
+      ? $self->show_building_status
+      : $self->show_planet_status;
 }
 
-sub show_map {
-    my $self   = shift;
-    my $planet = $self->current_planet;
-    warn $planet->surface_image;
-    Games::Lacuna::Client::PrettyPrint::surface( $planet->surface_image,
-        $planet->buildings );
-
-}
-
-sub show_status {
-    my $self   = shift;
-    my $planet = $self->current_planet;
-    Games::Lacuna::Client::PrettyPrint::show_status( $planet->status );
-}
-
-sub reload {
-    Module::Refresh->refresh;
-    say 'Modules Refreshed';
+sub show_building_status {
+    my $self = shift;
+    $self->has_current_building
+      ? $self->current_building->show_status
+      : say 'No building selected.';
 }
 
 sub help { say 'Commands: map, status, go, look, reload, quit' }
@@ -95,16 +130,22 @@ sub help { say 'Commands: map, status, go, look, reload, quit' }
 sub run {
     my ($self) = @_;
     $self->look;
-    while ( my $method = prompt('command: ', -u => qr/q|quit/) ) {
-        given ($method) {
-            when (qr/m|map/)    { $self->show_map }
-            when (qr/s|status/) { $self->show_status }
-            when (qr/g|go/)     { $self->switch_planet }
-            when (qr/l|look/)   { $self->look }
-            when (qr/r|reload/) { $self->reload }
-            when (qr/h|help/)   { $self->help }
-            when (qr/xyzzy/)    { say 'Nothing happens' }
-            default             { say 'Command not recognized. Try again.' }
+    while ( my $method = prompt( 'command: ', '-h', -fail => qr/q|quit/ ) ) {
+        try {
+            given ($method) {
+                when (qr/^go building$/)    { $self->switch_building }
+                when (qr/^leave building$/) { $self->leave_building }
+                when (qr/^map?$/)           { $self->show_map }
+                when (qr/^go planet?$/)     { $self->switch_planet }
+                when (qr/^look?$/)          { $self->look }
+                when (qr/^reload?$/)        { $self->reload }
+                when (qr/^help$/)           { $self->help }
+                when (qr/^xyzzy$/)          { say 'Nothing happens' }
+                default { say "Command $_ not recognized. Try again." }
+            }
+        }
+        catch {
+            say "Something went wrong: $_";
         }
     }
     say 'Goodbye';
