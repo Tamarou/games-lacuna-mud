@@ -10,7 +10,8 @@ out as I have time, or as patches roll in.
 
 ## Screen Shot
 
-<a href="https://skitch.com/perigrin/r8ft8/173x36"><img src="https://img.skitch.com/20101230-q9qftqfyy9hnegdp6g59tse9cr.preview.jpg" alt="Screen Shot" /></a>
+<a href="https://skitch.com/perigrin/r8ft8/173x36"><img src="https://img.skitch.com/20101230-q9qftqfyy9hnegdp6g59tse9cr.jpg" alt="Screen Shot" /></a>
+
 
 ## Getting Started
 
