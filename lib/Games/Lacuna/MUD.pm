@@ -1,15 +1,18 @@
-package Games::Lacuna::Client::MUD;
+package Games::Lacuna::MUD;
 use 5.12.2;
 
-use Moose;
+# ABSTRACT: A Text Based Client for Lacuna Expanse
+
+use Moose 1.0;
+use Module::Refresh 0.13;
+use IO::Prompter 0.001001;
+
 use Games::Lacuna::Client;
 use Games::Lacuna::Client::PrettyPrint;
 use Games::Lacuna::MUD::Empire;
 use Games::Lacuna::MUD::Planet;
 use Games::Lacuna::MUD::Building;
-use Module::Refresh;
 use Try::Tiny;
-use IO::Prompter;
 
 has cfg_file => (
     isa      => 'Str',
@@ -108,8 +111,19 @@ sub switch_building {
         id   => $bid,
         type => $type
     )->view()->{building};
-    my $building =
-      Games::Lacuna::MUD::Building->new( id => $bid, raw_data => $data );
+
+    my $building = try {
+        Games::Lacuna::MUD::Building->with_traits($type)->new(
+            id       => $bid,
+            raw_data => $data
+        );
+    }
+    catch {
+        Games::Lacuna::MUD::Building->new(
+            id       => $bid,
+            raw_data => $data
+        );
+    };
     $self->_current_building($building);
     $self->show_building_status;
 }
@@ -127,8 +141,6 @@ sub show_building_status {
       ? $self->current_building->show_status
       : say 'No building selected.';
 }
-
-sub help { say 'Commands: map, status, go, look, reload, quit' }
 
 sub try_command {
     my $self = shift;

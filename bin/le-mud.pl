@@ -24,7 +24,7 @@ pod2usage( -verbose => 2 ) if $man;
 pod2usage("Did not provide a config file")
   unless ( $cfg_file and -e $cfg_file );
 
-Games::Lacuna::Client::MUD->new( cfg_file => $cfg_file )->run;
+Games::Lacuna::MUD->new( cfg_file => $cfg_file )->run;
 
 __END__
 
