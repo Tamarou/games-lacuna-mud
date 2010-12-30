@@ -2,7 +2,12 @@ package Games::Lacuna::MUD::Building;
 use 5.12.2;
 use Moose;
 
-with 'Games::Lacuna::MUD::Templates';
+with qw(
+  MooseX::Traits
+  Games::Lacuna::MUD::Templates
+);
+
+has '+_trait_namespace' => ( default => 'Games::Lacuna::Mud::Building' );
 
 has id => ( isa => 'Str', is => 'ro', required => 1, );
 
