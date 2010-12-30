@@ -5,6 +5,7 @@ use 5.010000;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use lib "$FindBin::Bin/../ext/Games-Lacuna-Client/lib";
+use lib "$FindBin::Bin/../ext/IO-Prompter/lib";
 use Games::Lacuna::MUD;
 use Getopt::Long;
 use Pod::Usage;
