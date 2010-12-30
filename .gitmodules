@@ -1,3 +1,6 @@
 [submodule "ext/Games-Lacuna-Client"]
 	path = ext/Games-Lacuna-Client
 	url = git@github.com:Tamarou/Games-Lacuna-Client.git
+[submodule "ext/IO-Prompter"]
+	path = ext/IO-Prompter
+	url = /Users/perigrin/dev/IO-Prompter/.git/
