@@ -74,7 +74,18 @@ sub show_production_report {
           $self->client->building( id => $bid, type => $type )->view()
           ->{building};
     }
+}
 
+sub try_command {
+    my $self = shift;
+    given (shift) {
+        when (qr/^planet status$/) { $self->show_status }
+        when (qr/^planet map$/)    { $self->show_map }
+        when (qr/^look$/)          { $self->show_map; $self->show_status }
+        when (qr/^dump$/)          { say $self->dump }
+        default                    { return; }
+    }
+    return 1;
 }
 
 1;

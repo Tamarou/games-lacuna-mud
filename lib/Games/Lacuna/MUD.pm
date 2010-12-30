@@ -52,9 +52,10 @@ has current_planet => (
     lazy    => 1,
     builder => '_build_current_planet',
     handles => {
-        'show_planet_status'     => 'show_status',
-        'show_planet_map'        => 'show_map',
-        'show_production_report' => 'show_production_report',
+        show_planet_status     => 'show_status',
+        show_planet_map        => 'show_map',
+        show_production_report => 'show_production_report',
+        planet_try_command     => 'try_command',
     },
 );
 
@@ -84,6 +85,7 @@ has current_building => (
     writer    => '_current_building',
     clearer   => '_clear_building',
     predicate => 'has_current_building',
+    handles   => { building_try_command => 'try_command', }
 );
 
 sub _get_building_display_name {
@@ -118,13 +120,6 @@ sub leave_building {
     $self->look;
 }
 
-sub look {
-    my $self = shift;
-    $self->has_current_building
-      ? $self->show_building_status
-      : do { $self->show_planet_map; $self->show_planet_status };
-}
-
 sub show_building_status {
     my $self = shift;
     $self->has_current_building
@@ -134,29 +129,32 @@ sub show_building_status {
 
 sub help { say 'Commands: map, status, go, look, reload, quit' }
 
-sub dump_current {
+sub try_command {
     my $self = shift;
-    say $self->has_current_building
-      ? $self->current_building->dump
-      : $self->current_planet->dump;
+    given (shift) {
+        when (qr/^go building$/)    { $self->switch_building }
+        when (qr/^leave building$/) { $self->leave_building }
+        when (qr/^go planet?$/)     { $self->switch_planet }
+        when (qr/^reload$/)         { $self->reload }
+        when (qr/^help$/)           { $self->help }
+        when (qr/^xyzzy$/)          { say 'Nothing happens' }
+        default                     { return; }
+    }
+    return 1;
 }
 
 sub run {
     my ($self) = @_;
     $self->look;
-    while ( my $method = prompt( 'command: ', '-h', -fail => qr/^q(?:uit)$/ ) )
+    while ( my $method = prompt( 'command: ', '-h', -fail => qr/^q(?:uit)?$/ ) )
     {
         try {
             given ($method) {
-                when (qr/^go building$/)    { $self->switch_building }
-                when (qr/^leave building$/) { $self->leave_building }
-                when (qr/^map?$/)           { $self->show_planet_map }
-                when (qr/^go planet?$/)     { $self->switch_planet }
-                when (qr/^look?$/)          { $self->look }
-                when (qr/^dump$/)           { $self->dump_current }
-                when (qr/^reload?$/)        { $self->reload }
-                when (qr/^help$/)           { $self->help }
-                when (qr/^xyzzy$/)          { say 'Nothing happens' }
+                when ( $self->has_current_building ) {
+                    continue unless $self->building_try_command($_);
+                }
+                when ( $self->planet_try_command($_) ) { }
+                when ( $self->try_command($_) )        { }
                 default { say "Command $_ not recognized. Try again." }
             }
         }
