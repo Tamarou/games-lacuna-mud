@@ -14,11 +14,7 @@ use Games::Lacuna::MUD::Planet;
 use Games::Lacuna::MUD::Building;
 use Try::Tiny;
 
-has cfg_file => (
-    isa      => 'Str',
-    is       => 'ro',
-    required => 1,
-);
+BEGIN { $Games::Lacuna::Client::PrettyPrint::ansi_color = 1; }
 
 has refresher => (
     default => sub      { Module::Refresh->new },
@@ -28,25 +24,16 @@ has refresher => (
 after reload => sub { say 'Modules Refreshed' };
 
 has client => (
-    isa     => 'Games::Lacuna::Client',
-    is      => 'ro',
-    lazy    => 1,
-    builder => '_build_client'
+    isa      => 'Games::Lacuna::Client',
+    is       => 'ro',
+    required => 1,
 );
 
-sub _build_client { Games::Lacuna::Client->new( cfg_file => shift->cfg_file ) }
-
-has empire_data => (
-    isa     => 'Games::Lacuna::MUD::Empire',
-    is      => 'ro',
-    builder => '_build_empire_data',
+has empire => (
+    isa      => 'Games::Lacuna::MUD::Empire',
+    is       => 'ro',
+    required => 1,
 );
-
-sub _build_empire_data {
-    my ($self) = @_;
-    my $data = $self->client->empire->view_species_stats();
-    Games::Lacuna::MUD::Empire->new( raw_data => $data );
-}
 
 has current_planet => (
     isa     => 'Games::Lacuna::MUD::Planet',
@@ -63,7 +50,7 @@ has current_planet => (
 
 sub _build_current_planet {
     my ($self) = @_;
-    my $pid = $self->empire_data->home_planet_id;
+    my $pid = $self->empire->home_planet_id;
     $self->_pid_to_planet($pid);
 }
 
@@ -75,7 +62,7 @@ sub _pid_to_planet {
 
 sub switch_planet {
     my ($self) = @_;
-    my $menue = { reverse %{ $self->empire_data->planets } };
+    my $menue = { reverse %{ $self->empire->planets } };
     my $pid = prompt( 'Planet: ', '-number', -menu => $menue, '-v' );
     $self->_current_planet( $self->_pid_to_planet($pid) );
     $self->show_planet_map;
