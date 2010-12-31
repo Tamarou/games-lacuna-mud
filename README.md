@@ -19,7 +19,7 @@ This is still in developer release mode, we may never get beyond that. If you'd 
 
 On a box with Perl 5.12.2 installed download a copy of this Games::Lacuna::MUD
 either by cloning it or downloading a
-[tarball](https://github.com/stevan/Jackalope/tarball/master).
+[tarball](https://github.com/Tamarou/games-lacuna-mud/tarball/master).
 
 If you've never installed a CPAN distribution before, you'll need a configured
 CPAN client. I happen to like CPAN minus because it has good defaults, and can
