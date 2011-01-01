@@ -1,5 +1,8 @@
 package Games::Lacuna::MUD::Empire;
+use 5.12.2;
 use Moose;
+
+use Games::Lacuna::Client::Governor;
 
 has config => (
     isa      => 'Games::Lacuna::MUD::Container',
@@ -54,6 +57,24 @@ has planets => (
     traits  => ['Hash'],
     handles => { planet_names => 'values', }
 );
+
+sub ship_report {
+    my $self = shift;
+
+    my $governor =
+      Games::Lacuna::Client::Governor->new( $self->client,
+        { colony => { _default_ => { priorities => ['ship_report'] } } } );
+    $governor->run();
+}
+
+sub try_command {
+    my $self = shift;
+    given (shift) {
+        when (qr/^ship report$/) { $self->ship_report }
+        default                  { return; }
+    }
+    return 1;
+}
 
 1;
 __END__

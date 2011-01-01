@@ -42,6 +42,9 @@ has empire => (
     isa      => 'Games::Lacuna::MUD::Empire',
     is       => 'ro',
     required => 1,
+    handles => {
+        empire_try_command => 'try_command',
+    }
 );
 
 has current_planet => (
@@ -153,6 +156,7 @@ sub run {
                     continue unless $self->building_try_command($_);
                 }
                 when ( $self->planet_try_command($_) ) { }
+                when ( $self->empire_try_command($_) ) { }                
                 when ( $self->try_command($_) )        { }
                 default { say "Command $_ not recognized. Try again." }
             }
