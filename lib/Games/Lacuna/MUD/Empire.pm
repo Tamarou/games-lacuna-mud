@@ -1,6 +1,13 @@
 package Games::Lacuna::MUD::Empire;
 use Moose;
 
+has config => (
+    isa      => 'Games::Lacuna::MUD::Container',
+    is       => 'ro',
+    required => 1,
+    handles  => { client => 'web_client', }
+);
+
 has raw_data => (
     isa      => 'HashRef',
     required => 1,

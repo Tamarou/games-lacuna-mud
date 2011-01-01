@@ -5,6 +5,13 @@ use Games::Lacuna::Client::PrettyPrint;
 
 has id => ( isa => 'Str', is => 'ro', required => 1, );
 
+has config => (
+    isa      => 'Games::Lacuna::MUD::Container',
+    is       => 'ro',
+    required => 1,
+    handles  => { client => 'web_client', }
+);
+
 has raw_data => (
     isa      => 'HashRef',
     required => 1,

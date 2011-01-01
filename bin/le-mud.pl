@@ -6,7 +6,7 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 use lib "$FindBin::Bin/../ext/Games-Lacuna-Client/lib";
 use lib "$FindBin::Bin/../ext/IO-Prompter/lib";
-use Games::Lacuna::MUD::Config;
+use Games::Lacuna::MUD;
 use Getopt::Long;
 use Pod::Usage;
 
@@ -24,8 +24,7 @@ pod2usage( -verbose => 2 ) if $man;
 pod2usage("Did not provide a config file")
   unless ( $cfg_file and -e $cfg_file );
 
-Games::Lacuna::MUD::Config->new( cfg_file => $cfg_file )
-  ->resolve( service => 'mud_client' )->run;
+Games::Lacuna::MUD->new_mud_client( cfg_file => $cfg_file )->run;
 
 __END__
 

@@ -9,12 +9,27 @@ use IO::Prompter 0.001001;
 
 use Games::Lacuna::Client;
 use Games::Lacuna::Client::PrettyPrint;
-use Games::Lacuna::MUD::Empire;
-use Games::Lacuna::MUD::Planet;
+use Games::Lacuna::MUD::Container;
+
 use Games::Lacuna::MUD::Building;
 use Try::Tiny;
 
 BEGIN { $Games::Lacuna::Client::PrettyPrint::ansi_color = 1; }
+
+sub new_mud_client {
+    shift;
+    Games::Lacuna::MUD::Container->new(@_)->mud_client;
+}
+
+has config => (
+    isa      => 'Games::Lacuna::MUD::Container',
+    is       => 'ro',
+    required => 1,
+    handles  => {
+        get_planet => 'get_planet',
+        client     => 'web_client',
+    }
+);
 
 has refresher => (
     default => sub      { Module::Refresh->new },
@@ -23,12 +38,6 @@ has refresher => (
 
 after reload => sub { say 'Modules Refreshed' };
 
-has client => (
-    isa      => 'Games::Lacuna::Client',
-    is       => 'ro',
-    required => 1,
-);
-
 has empire => (
     isa      => 'Games::Lacuna::MUD::Empire',
     is       => 'ro',
@@ -36,35 +45,22 @@ has empire => (
 );
 
 has current_planet => (
-    isa     => 'Games::Lacuna::MUD::Planet',
-    is      => 'ro',
-    writer  => '_current_planet',
-    lazy    => 1,
-    builder => '_build_current_planet',
-    handles => {
+    isa      => 'Games::Lacuna::MUD::Planet',
+    is       => 'ro',
+    writer   => '_current_planet',
+    required => 1,
+    handles  => {
         show_planet_status => 'show_status',
         show_planet_map    => 'show_map',
         planet_try_command => 'try_command',
     },
 );
 
-sub _build_current_planet {
-    my ($self) = @_;
-    my $pid = $self->empire->home_planet_id;
-    $self->_pid_to_planet($pid);
-}
-
-sub _pid_to_planet {
-    my ( $self, $pid ) = @_;
-    my $data = $self->client->body( id => $pid )->get_buildings();
-    Games::Lacuna::MUD::Planet->new( id => $pid, raw_data => $data );
-}
-
 sub switch_planet {
     my ($self) = @_;
     my $menue = { reverse %{ $self->empire->planets } };
     my $pid = prompt( 'Planet: ', '-number', -menu => $menue, '-v' );
-    $self->_current_planet( $self->_pid_to_planet($pid) );
+    $self->_current_planet( $self->get_planet($pid) );
     $self->show_planet_map;
     $self->show_planet_status;
 }
@@ -148,10 +144,11 @@ sub run {
     $self->show_planet_map;
     $self->show_planet_status;
     my $planet = $self->current_planet->name;
-    while ( my $method = prompt( "$planet: ", '-h', -fail => qr/^q(?:uit)?$/ ) )
-    {
+    my $id     = $self->current_planet->id;
+
+    while ( prompt( "$planet: ", '-h', -fail => qr/^q(?:uit)?$/ ) ) {
         try {
-            given ($method) {
+            given ($_) {
                 when ( $self->has_current_building ) {
                     continue unless $self->building_try_command($_);
                 }
